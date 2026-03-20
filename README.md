@@ -1,7 +1,5 @@
 # HyperVault - Native DOT Yield on Polkadot Hub
 
-Polkadot Solidity Hackathon | Track 1: EVM Smart Contracts  
-Solo Build | 7-Hour Sprint | Submission: March 20, 2026
 
 ## One-Line Pitch
 
@@ -16,41 +14,6 @@ HyperVault is designed to make Polkadot-native yield accessible from the EVM env
 - The vault tracks user shares and share price as staking value accrues.
 - On withdrawal, the vault dispatches XCM to redeem vDOT back to DOT + yield.
 - Users never need to interact with Bifrost directly.
-
-## Current Prototype Status (Demo-Ready UI)
-
-This repository currently contains a professional frontend prototype that simulates the complete deposit/withdraw UX in **mock mode** (so the demo works even if XCM precompile integration is not fully wired yet).
-
-What's mocked today:
-
-- vDOT value growth using a mocked APY
-- share price and user position accounting
-- "XCM dispatched" + activity feed events
-
-Where it lives:
-
-- Vault mock logic: `src/hooks/use-vault.ts`
-- Dashboard / states / components: `src/components/*`, `src/pages/Index.tsx`
-
-Planned next step:
-
-- Replace mock mode with real `HyperVault.sol` contract interactions on Polkadot Hub (and wire XCM dispatch to Bifrost through the relevant precompile).
-
-## User Experience (Deposit -> Yield -> Withdraw)
-
-### Deposit
-
-1. User enters an amount in DOT.
-2. Vault calculates shares based on current share price.
-3. Vault "dispatches XCM to Bifrost" to mint vDOT (mocked in this prototype).
-4. UI shows updated position and share count.
-
-### Withdraw
-
-1. User chooses shares to redeem.
-2. Vault calculates the DOT owed from share price (principal + accrued value).
-3. Vault "redeems vDOT via XCM from Bifrost" (mocked in this prototype).
-4. UI updates wallet balance and clears/updates the position.
 
 ## Architecture (Planned)
 
@@ -83,32 +46,17 @@ Key behaviors:
 - Dispatch XCM messages to Bifrost to mint vDOT.
 - Track each user's shares and share price over time.
 - Dispatch XCM messages to redeem vDOT back to DOT + yield on withdrawal.
-- Include an emergency pause and a demo-friendly fallback strategy.
+- Include an emergency pause and an XCM-failure fallback strategy.
 
-Fallback strategy (critical for a 7-hour build):
-
-- The UX continues to work even if the XCM precompile is unavailable/misconfigured.
-- Contract actions degrade to emitted events and mocked yield accounting so the demo flow remains intact.
-
-## Frontend Spec
-
-Design direction:
-
-- Dark, precise, financial UI (not generic gradient DeFi)
-- Monospace numbers, clear data panels, and an "XCM status" banner for trust
-
-Views (implemented as a UI state machine in this prototype):
-
-- Connect Wallet (demo connect)
-- Main Dashboard: vault stats, deposit panel, position panel, activity feed
-- Transaction Pending overlay during "XCM dispatch" (simulated)
+Fallback strategy:
+- If XCM dispatch is unavailable or misconfigured on the target network, the contract emits intent events and safely blocks or defers share accounting for actions that depend on successful XCM delivery.
 
 ## Tech Stack
 
 - Frontend: React + Vite + TypeScript
 - Styling: Tailwind CSS
 - Contract integration (planned): `ethers.js`, wallet connection (e.g. wagmi/viem + RainbowKit)
-- Prototype logic (current): mocked vault state to keep the demo end-to-end
+- Contract integration: wire the UI to real `HyperVault.sol` methods as they are implemented
 
 ## Local Development
 
@@ -122,16 +70,6 @@ Views (implemented as a UI state machine in this prototype):
 4. Test / Lint:
    - `npm test`
    - `npm run lint`
-
-## 7-Hour Build Plan (Condensed)
-
-1. Environment setup + precompile validation (or fallback decision)
-2. Implement `HyperVault.sol` (deposit/withdraw/share accounting + XCM dispatch)
-3. Add tests + deploy script (at minimum: compile + basic deposit/withdraw flow)
-4. Build UI states (connect → dashboard → pending overlay)
-5. Wire UI to the real contract (replacing mock mode)
-6. Demo run + polish
-7. Final README + demo submission materials
 
 ## Roadmap (If Time Permits)
 
