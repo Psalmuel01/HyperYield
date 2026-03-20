@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 20% 4%;
+    --foreground: 0 0% 94%;
+
+    --card: 240 18% 8%;
+    --card-foreground: 0 0% 94%;
+
+    --popover: 240 18% 8%;
+    --popover-foreground: 0 0% 94%;
+
+    --primary: 328 100% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 258 55% 46%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 240 15% 12%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 166 100% 42%;
+    --accent-foreground: 240 20% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 12% 16%;
+    --input: 240 12% 16%;
+    --ring: 328 100% 45%;
+
+    --radius: 0.5rem;
+
+    --surface: 240 18% 8%;
+    --surface-elevated: 240 15% 12%;
+    --glow-primary: 0 0 30px hsl(328 100% 45% / 0.3);
+    --glow-accent: 0 0 20px hsl(166 100% 42% / 0.2);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-mono;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'DM Serif Display', serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'DM Serif Display', serif;
+  }
+  .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+/* Pulse animation for XCM */
+@keyframes xcm-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+.animate-xcm-pulse {
+  animation: xcm-pulse 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}

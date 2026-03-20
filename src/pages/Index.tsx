@@ -1,0 +1,86 @@
+import HyperVaultLogo from '@/components/HyperVaultLogo';
+import ConnectWallet from '@/components/ConnectWallet';
+import VaultStatsBar from '@/components/VaultStatsBar';
+import DepositPanel from '@/components/DepositPanel';
+import PositionPanel from '@/components/PositionPanel';
+import ActivityFeed from '@/components/ActivityFeed';
+import TransactionOverlay from '@/components/TransactionOverlay';
+import { Button } from '@/components/ui/button';
+import { useVault } from '@/hooks/use-vault';
+
+const Index = () => {
+  const vault = useVault();
+
+  if (!vault.connected) {
+    return (
+      <ConnectWallet
+        onConnect={vault.connectWallet}
+        vaultStats={{ apy: vault.vaultState.apy, totalDOT: vault.vaultState.totalDOT }}
+      />
+    );
+  }
+
+  const shortAddr = vault.walletAddress.slice(0, 6) + '...' + vault.walletAddress.slice(-4);
+
+  return (
+    <div className="min-h-screen bg-background">
+      {vault.pendingTx && (
+        <TransactionOverlay type={vault.pendingTx.type} hash={vault.pendingTx.hash} />
+      )}
+
+      {/* Header */}
+      <header className="border-b border-border px-6 py-4 flex items-center justify-between">
+        <HyperVaultLogo />
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-xs font-mono text-muted-foreground">{shortAddr}</p>
+            <p className="text-xs font-mono text-accent">{vault.dotBalance.toFixed(2)} DOT</p>
+          </div>
+          <Button variant="ghost" size="sm" className="text-xs font-mono text-muted-foreground" onClick={vault.disconnectWallet}>
+            Disconnect
+          </Button>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+        {/* XCM status banner */}
+        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/50 rounded-md px-4 py-2 border border-border/50">
+          <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+          <span>XCM dispatch ready — Bifrost parachain connected</span>
+          <span className="ml-auto">Fallback mode: simulated vDOT APY</span>
+        </div>
+
+        <VaultStatsBar vaultState={vault.vaultState} userPosition={vault.userPosition} />
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <DepositPanel
+              dotBalance={vault.dotBalance}
+              sharePrice={vault.vaultState.sharePrice}
+              totalShares={vault.vaultState.totalShares}
+              onDeposit={vault.deposit}
+            />
+            <PositionPanel
+              position={vault.userPosition}
+              sharePrice={vault.vaultState.sharePrice}
+              onWithdraw={vault.withdraw}
+            />
+          </div>
+          <ActivityFeed transactions={vault.transactions} />
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border px-6 py-4 mt-12">
+        <div className="max-w-6xl mx-auto flex items-center justify-between text-[10px] font-mono text-muted-foreground/40 tracking-widest uppercase">
+          <span>HyperVault · Polkadot Hub EVM</span>
+          <span>Bifrost vDOT · ~{vault.vaultState.apy}% APY</span>
+          <span>Hackathon Build · March 2026</span>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Index;
