@@ -13,7 +13,7 @@ pragma solidity ^0.8.20;
 //
 //  Network:  Passet Hub (Polkadot Hub TestNet)
 //  RPC:      https://testnet-passet-hub-eth-rpc.polkadot.io
-//  ChainId:  420420422
+//  ChainId:  420420417
 //
 //  Key addresses (Passet Hub):
 //    XCM precompile:  0x00000000000000000000000000000000000a0000

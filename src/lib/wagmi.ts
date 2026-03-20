@@ -8,8 +8,8 @@ import { defineChain } from 'viem';
 
 // ── Passet Hub (Polkadot Hub TestNet) ─────────────────────────
 export const passetHub = defineChain({
-  id: 420420422,
-  name: 'Passet Hub',
+  id: 420420417,
+  name: 'Polkadot Testnet',
   nativeCurrency: {
     name: 'PAS',
     symbol: 'PAS',
@@ -17,7 +17,7 @@ export const passetHub = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ['https://testnet-passet-hub-eth-rpc.polkadot.io'],
+      http: ['https://eth-rpc-testnet.polkadot.io'],
     },
   },
   blockExplorers: {
