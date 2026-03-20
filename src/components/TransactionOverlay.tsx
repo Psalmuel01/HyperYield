@@ -1,9 +1,13 @@
+import { BLOCK_EXPLORER } from '@/lib/contract';
+
 interface TransactionOverlayProps {
   type: string;
   hash: string;
 }
 
 const TransactionOverlay = ({ type, hash }: TransactionOverlayProps) => {
+  const explorerUrl = hash ? `${BLOCK_EXPLORER}/tx/${hash}` : '';
+
   return (
     <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center">
       <div className="flex flex-col items-center gap-6 max-w-sm text-center px-6">
@@ -27,10 +31,23 @@ const TransactionOverlay = ({ type, hash }: TransactionOverlayProps) => {
           </p>
         </div>
 
-        <div className="bg-card border border-border rounded-md px-4 py-2">
-          <p className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase mb-1">TX HASH</p>
-          <p className="text-xs font-mono text-muted-foreground break-all">{hash}</p>
-        </div>
+        {hash && (
+          <div className="bg-card border border-border rounded-md px-4 py-2">
+            <p className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase mb-1">TX HASH</p>
+            {explorerUrl ? (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-primary/80 hover:text-primary break-all transition-colors underline underline-offset-2"
+              >
+                {hash}
+              </a>
+            ) : (
+              <p className="text-xs font-mono text-muted-foreground break-all">{hash}</p>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60">
           <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />

@@ -1,12 +1,12 @@
-import { Button } from '@/components/ui/button';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import HyperVaultLogo from '@/components/HyperVaultLogo';
 
 interface ConnectWalletProps {
-  onConnect: () => void;
+  onConnect?: () => void;
   vaultStats: { apy: number; totalDOT: number };
 }
 
-const ConnectWallet = ({ onConnect, vaultStats }: ConnectWalletProps) => {
+const ConnectWallet = ({ vaultStats }: ConnectWalletProps) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
       {/* Background grid */}
@@ -35,9 +35,27 @@ const ConnectWallet = ({ onConnect, vaultStats }: ConnectWalletProps) => {
           </p>
         </div>
 
-        <Button variant="vault" size="lg" className="px-12 py-6 text-sm" onClick={onConnect}>
-          Connect Wallet
-        </Button>
+        {/* RainbowKit ConnectButton — styled to match HyperVault theme */}
+        <ConnectButton.Custom>
+          {({ openConnectModal, mounted }) => {
+            const ready = mounted;
+            return (
+              <div
+                {...(!ready && {
+                  'aria-hidden': true,
+                  style: { opacity: 0, pointerEvents: 'none' as const, userSelect: 'none' as const },
+                })}
+              >
+                <button
+                  onClick={openConnectModal}
+                  className="px-12 py-4 text-sm font-mono font-semibold tracking-wider uppercase rounded-md bg-gradient-to-r from-primary to-secondary text-primary-foreground transition-all duration-300 hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] glow-primary"
+                >
+                  Connect Wallet
+                </button>
+              </div>
+            );
+          }}
+        </ConnectButton.Custom>
 
         <div className="flex items-center gap-6 text-xs font-mono text-muted-foreground">
           <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import HyperVaultLogo from '@/components/HyperVaultLogo';
 import ConnectWallet from '@/components/ConnectWallet';
 import VaultStatsBar from '@/components/VaultStatsBar';
@@ -5,7 +6,6 @@ import DepositPanel from '@/components/DepositPanel';
 import PositionPanel from '@/components/PositionPanel';
 import ActivityFeed from '@/components/ActivityFeed';
 import TransactionOverlay from '@/components/TransactionOverlay';
-import { Button } from '@/components/ui/button';
 import { useVault } from '@/hooks/use-vault';
 
 const Index = () => {
@@ -14,13 +14,10 @@ const Index = () => {
   if (!vault.connected) {
     return (
       <ConnectWallet
-        onConnect={vault.connectWallet}
         vaultStats={{ apy: vault.vaultState.apy, totalDOT: vault.vaultState.totalDOT }}
       />
     );
   }
-
-  const shortAddr = vault.walletAddress.slice(0, 6) + '...' + vault.walletAddress.slice(-4);
 
   return (
     <div className="min-h-screen bg-background">
@@ -32,13 +29,15 @@ const Index = () => {
       <header className="border-b border-border px-6 py-4 flex items-center justify-between">
         <HyperVaultLogo />
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-xs font-mono text-muted-foreground">{shortAddr}</p>
+          <div className="text-right mr-2">
             <p className="text-xs font-mono text-accent">{vault.dotBalance.toFixed(2)} DOT</p>
           </div>
-          <Button variant="ghost" size="sm" className="text-xs font-mono text-muted-foreground" onClick={vault.disconnectWallet}>
-            Disconnect
-          </Button>
+          {/* RainbowKit provides the address, chain, and disconnect in one component */}
+          <ConnectButton
+            accountStatus="address"
+            chainStatus="icon"
+            showBalance={false}
+          />
         </div>
       </header>
 
@@ -46,9 +45,17 @@ const Index = () => {
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* XCM status banner */}
         <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/50 rounded-md px-4 py-2 border border-border/50">
-          <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-          <span>XCM dispatch ready — Bifrost parachain connected</span>
-          <span className="ml-auto">Fallback mode: simulated vDOT APY</span>
+          <div className={`w-1.5 h-1.5 rounded-full ${vault.vaultState.xcmEnabled ? 'bg-accent' : 'bg-secondary'} animate-pulse`} />
+          <span>
+            {vault.vaultState.xcmEnabled
+              ? 'XCM dispatch live — Bifrost parachain connected'
+              : 'XCM dispatch ready — Bifrost parachain connected'}
+          </span>
+          <span className="ml-auto">
+            {vault.vaultState.xcmEnabled
+              ? 'Live mode: vDOT staking via XCM'
+              : 'Fallback mode: simulated vDOT APY'}
+          </span>
         </div>
 
         <VaultStatsBar vaultState={vault.vaultState} userPosition={vault.userPosition} />
