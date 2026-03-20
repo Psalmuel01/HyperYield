@@ -21,7 +21,7 @@ const ActivityFeed = ({ transactions }: ActivityFeedProps) => {
   const recent = transactions.slice(0, 6);
 
   return (
-    <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+    <div className="bg-card border border-border rounded-lg p-5 space-y-3">
       <h3 className="font-display text-lg text-foreground">Activity</h3>
 
       <div className="space-y-2">

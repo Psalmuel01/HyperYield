@@ -24,7 +24,7 @@ const ConnectWallet = ({ onConnect, vaultStats }: ConnectWalletProps) => {
           <HyperVaultLogo className="scale-150" />
         </div>
 
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-3">
           <h2 className="font-display text-4xl md:text-5xl text-foreground leading-tight">
             Native DOT Yield.
             <br />

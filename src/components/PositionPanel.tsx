@@ -43,7 +43,7 @@ const PositionPanel = ({ position, sharePrice, onWithdraw }: PositionPanelProps)
     : 0;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+    <div className="bg-card border border-border rounded-lg p-5 space-y-3">
       <h3 className="font-display text-lg text-foreground">Your Position</h3>
 
       <div className="grid grid-cols-2 gap-4">

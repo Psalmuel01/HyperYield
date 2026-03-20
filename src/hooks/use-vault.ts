@@ -1,4 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from '@/components/ui/sonner';
+
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on?: (event: string, listener: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
+};
+
+declare global {
+  interface Window {
+    ethereum?: EthereumProvider;
+  }
+}
 
 export interface UserPosition {
   shares: number;
@@ -68,11 +81,58 @@ export function useVault() {
 
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
 
-  const connectWallet = useCallback(() => {
-    const addr = '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    setWalletAddress(addr);
-    setConnected(true);
-    setDotBalance(100);
+  const connectWallet = useCallback(async () => {
+    const ethereum = window.ethereum;
+    if (!ethereum?.request) {
+      toast.error('No EVM wallet detected. Please install MetaMask or another wallet.');
+      return;
+    }
+
+    try {
+      const accountsUnknown = await ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = Array.isArray(accountsUnknown)
+        ? accountsUnknown.filter((a): a is string => typeof a === 'string')
+        : [];
+      const account = accounts[0];
+      if (!account) {
+        toast.error('No account selected in the wallet.');
+        return;
+      }
+
+      setWalletAddress(account);
+      setConnected(true);
+      // Placeholder until the contract integration is wired up.
+      setDotBalance(100);
+    } catch (err: unknown) {
+      // Common: user rejected request.
+      toast.error(err instanceof Error ? `Wallet connection failed: ${err.message}` : 'Wallet connection failed.');
+    }
+  }, []);
+
+  useEffect(() => {
+    const ethereum = window.ethereum;
+    if (!ethereum?.on) return;
+
+    const onAccountsChanged = (accountsUnknown: unknown) => {
+      const accounts = Array.isArray(accountsUnknown)
+        ? accountsUnknown.filter((a): a is string => typeof a === 'string')
+        : [];
+      const account = accounts[0] ?? '';
+      if (!account) {
+        setConnected(false);
+        setWalletAddress('');
+        setUserPosition({ shares: 0, dotValue: 0, yieldEarned: 0, yieldPercent: 0, depositTimestamp: null });
+        return;
+      }
+      setWalletAddress(account);
+    };
+
+    // Keep state aligned when the user switches accounts.
+    ethereum.on('accountsChanged', onAccountsChanged);
+    return () => {
+      ethereum.removeListener?.('accountsChanged', onAccountsChanged);
+    };
+    // Intentionally does not depend on callbacks/state to keep listener stable.
   }, []);
 
   const disconnectWallet = useCallback(() => {
