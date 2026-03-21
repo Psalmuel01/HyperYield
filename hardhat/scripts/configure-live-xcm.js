@@ -44,12 +44,12 @@ function requireRemark() {
   return value;
 }
 
-function parseUint(name, fallback) {
+function parseUint(name, fallback, max = Number.MAX_SAFE_INTEGER) {
   const raw = (process.env[name] || "").trim();
   if (!raw) return fallback;
   const value = Number(raw);
-  if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`${name} must be a non-negative number`);
+  if (!Number.isFinite(value) || value < 0 || value > max) {
+    throw new Error(`${name} must be a non-negative number <= ${max}`);
   }
   return value;
 }
@@ -61,7 +61,7 @@ async function main() {
   const vDotCurrencyId = requireBytesN("VDOT_CURRENCY_ID", 2);
   const destChainIndexRaw = requireBytesN("DEST_CHAIN_INDEX_RAW", 1);
   const remark = requireRemark();
-  const channelId = parseUint("CHANNEL_ID", 0);
+  const channelId = parseUint("CHANNEL_ID", 0, 0xffffffff);
   const refTime = parseUint("XCM_REF_TIME", 5_000_000_000);
   const proofSize = parseUint("XCM_PROOF_SIZE", 131_072);
 

@@ -8,6 +8,7 @@ Set these before running deployment/config scripts:
 
 - `PRIVATE_KEY` deployer key (0x-prefixed).
 - `DOT_ERC20_ADDRESS` DOT ERC-20 precompile address on Polkadot Hub.
+- `DOT_ASSET_ID` optional alternative; if set, deploy script derives `DOT_ERC20_ADDRESS`.
 - `VAULT_ADDRESS` set after deployment (for follow-up scripts).
 
 Optional:
@@ -22,6 +23,14 @@ Optional:
 
 ```bash
 DOT_ERC20_ADDRESS=0x... npx hardhat run scripts/deploy-all.js --network polkadotTestnet
+# or
+DOT_ASSET_ID=<DOT_ASSET_ID> npx hardhat run scripts/deploy-all.js --network polkadotTestnet
+```
+
+Preflight probe (recommended before deploy):
+
+```bash
+npx hardhat run scripts/probe-hub-precompiles.js --network polkadotTestnet
 ```
 
 2. (If needed) set sovereign after deriving it:
@@ -46,4 +55,10 @@ npx hardhat run scripts/configure-live-xcm.js --network polkadotTestnet
 
 ```bash
 VAULT_ADDRESS=0x... DOT_ERC20_ADDRESS=0x... npx hardhat run scripts/test-deposit.js --network polkadotTestnet
+```
+
+5. Read-only live config check:
+
+```bash
+VAULT_ADDRESS=0x... npx hardhat run scripts/check-live-config.js --network polkadotTestnet
 ```

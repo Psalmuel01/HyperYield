@@ -184,7 +184,7 @@ library XcmBuilder {
      */
     function buildRedeemMessage(
         uint128 vdotAmount,
-        bytes32 hubSovereign,
+        bytes32 /* hubSovereign */,
         bytes memory redeemCall,
         uint64 refTime,
         uint64 proofSize

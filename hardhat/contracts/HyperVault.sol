@@ -201,6 +201,7 @@ contract HyperVault is ReentrancyGuard, Ownable {
     error TransferFailed();
     error XcmCallFailed();
     error VaultPaused();
+    error XcmNotConfigured();
 
     // ─────────────────────────────────────────────────────────
     //  Pause
@@ -228,7 +229,7 @@ contract HyperVault is ReentrancyGuard, Ownable {
         bool    _xcmEnabled
     ) Ownable(msg.sender) {
         dotToken      = IERC20(_dotToken);
-        dotDecimals   = IERC20Metadata(_dotToken).decimals();
+        dotDecimals   = _safeReadDecimals(_dotToken);
         hubSovereign  = _hubSovereign;
         xcmEnabled    = _xcmEnabled;
         lastYieldTimestamp = block.timestamp;
@@ -395,6 +396,7 @@ contract HyperVault is ReentrancyGuard, Ownable {
             emit XcmDispatched(user, "mint", dotAmount, false);
             return;
         }
+        if (!_isLiveXcmConfigured()) revert XcmNotConfigured();
 
         bytes memory dest    = XcmBuilder.bifrostDest();
         bytes memory targetChain = abi.encodePacked(destChainIndexRaw, address(this));
@@ -427,6 +429,7 @@ contract HyperVault is ReentrancyGuard, Ownable {
             emit XcmDispatched(user, "redeem", dotAmount, false);
             return;
         }
+        if (!_isLiveXcmConfigured()) revert XcmNotConfigured();
 
         bytes memory dest    = XcmBuilder.bifrostDest();
         bytes memory targetChain = abi.encodePacked(destChainIndexRaw, address(this));
@@ -464,14 +467,7 @@ contract HyperVault is ReentrancyGuard, Ownable {
      *      Only active in mock mode (xcmEnabled = false OR no call bytes set).
      */
     function _accrueMockYield() internal {
-        if (
-            xcmEnabled &&
-            destChainIndexRaw != bytes1(0) &&
-            dotCurrencyId != bytes2(0) &&
-            vDotCurrencyId != bytes2(0) &&
-            bytes(remark).length > 0 &&
-            channelId != 0
-        ) return; // live mode (XCM dispatch configured)
+        if (_isLiveXcmConfigured()) return; // live mode (XCM dispatch configured)
         if (totalDotDeposited == 0) {
             lastYieldTimestamp = block.timestamp;
             return;
@@ -582,12 +578,16 @@ contract HyperVault is ReentrancyGuard, Ownable {
 
     /// @dev Total vault DOT including mock accrued yield.
     function _totalVaultDot() internal view returns (uint256) {
+        if (_isLiveXcmConfigured()) {
+            return totalDotDeposited;
+        }
         return totalDotDeposited + mockAccruedYield;
     }
 
     /// @dev Rough per-user yield estimate (pro-rata share of total mock yield).
     function _estimateUserYield(address user) internal view returns (uint256) {
         if (totalShares == 0 || shares[user] == 0) return 0;
+        if (_isLiveXcmConfigured()) return 0;
 
         // Accrue virtually (without writing state) for view accuracy.
         uint256 elapsed   = block.timestamp - lastYieldTimestamp;
@@ -633,6 +633,12 @@ contract HyperVault is ReentrancyGuard, Ownable {
         remark = _remark;
         channelId = _channelId;
         xcmEnabled = _enabled;
+        if (_enabled) {
+            // Reset demo-only accrual when switching to live mode so share
+            // accounting is not inflated by synthetic yield.
+            mockAccruedYield = 0;
+            lastYieldTimestamp = block.timestamp;
+        }
 
         emit XcmConfigUpdated(
             _dotCurrencyId,
@@ -677,5 +683,24 @@ contract HyperVault is ReentrancyGuard, Ownable {
     function rescueDot(address to, uint256 amount) external onlyOwner {
         require(paused, "Unpause first");
         dotToken.safeTransfer(to, amount);
+    }
+
+    function _safeReadDecimals(address token) internal view returns (uint8) {
+        try IERC20Metadata(token).decimals() returns (uint8 d) {
+            return d;
+        } catch {
+            // Polkadot Hub ERC20 precompiles do not expose decimals/name/symbol.
+            // DOT/PAS assets use 10 decimals on Hub.
+            return 10;
+        }
+    }
+
+    function _isLiveXcmConfigured() internal view returns (bool) {
+        return
+            xcmEnabled &&
+            dotCurrencyId != bytes2(0) &&
+            vDotCurrencyId != bytes2(0) &&
+            destChainIndexRaw != bytes1(0) &&
+            bytes(remark).length > 0;
     }
 }

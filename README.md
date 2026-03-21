@@ -47,8 +47,11 @@ Quick flow:
 ```bash
 cd hardhat
 DOT_ERC20_ADDRESS=0x... npx hardhat run scripts/deploy-all.js --network polkadotTestnet
+# or: DOT_ASSET_ID=<DOT_ASSET_ID> npx hardhat run scripts/deploy-all.js --network polkadotTestnet
+npx hardhat run scripts/probe-hub-precompiles.js --network polkadotTestnet
 VAULT_ADDRESS=0x... HUB_SOVEREIGN=0x... npx hardhat run scripts/set-hub-sovereign.js --network polkadotTestnet
 VAULT_ADDRESS=0x... DOT_CURRENCY_ID=0x0800 VDOT_CURRENCY_ID=0x0900 DEST_CHAIN_INDEX_RAW=0x01 XCM_REMARK=HyperVault CHANNEL_ID=0 npx hardhat run scripts/configure-live-xcm.js --network polkadotTestnet
+VAULT_ADDRESS=0x... npx hardhat run scripts/check-live-config.js --network polkadotTestnet
 ```
 
 ## Commands

@@ -10,14 +10,25 @@ const hre = require("hardhat");
 const { ethers } = hre;
 const fs = require("fs");
 
+function loadEnvFileValue(path, key) {
+  if (!fs.existsSync(path)) return null;
+  const lines = fs.readFileSync(path, "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    const idx = line.indexOf("=");
+    if (idx <= 0) continue;
+    const k = line.slice(0, idx).trim();
+    if (k !== key) continue;
+    return line.slice(idx + 1).trim() || null;
+  }
+  return null;
+}
+
 async function main() {
   const [signer] = await ethers.getSigners();
 
   // Load vault address from deploy output
   const vaultAddress = process.env.VAULT_ADDRESS
-    || (fs.existsSync(".vault-address")
-      ? fs.readFileSync(".vault-address", "utf8").split("=")[1].trim()
-      : null);
+    || loadEnvFileValue(".vault-address", "VAULT_ADDRESS");
 
   if (!vaultAddress) {
     throw new Error("Set VAULT_ADDRESS env var or run deploy.js first.");
@@ -37,23 +48,24 @@ async function main() {
 
   const vault = await ethers.getContractAt("HyperVault", vaultAddress, signer);
   const dot = await ethers.getContractAt("IERC20", dotAddress, signer);
+  const dotDecimals = Number(await vault.dotDecimals());
+  const dotSymbol = dotDecimals === 10 ? "DOT" : "TOKEN";
 
-  // 1 DOT = 1e10 Planck on Polkadot
-  const ONE_DOT = ethers.parseUnits("1", 10);
-  const DEPOSIT_AMOUNT = ONE_DOT * 5n; // 5 DOT
+  const ONE_TOKEN = ethers.parseUnits("1", dotDecimals);
+  const DEPOSIT_AMOUNT = ONE_TOKEN * 5n; // 5 units
 
-  console.log(`\n[1] DOT balance: ${ethers.formatUnits(
-    await dot.balanceOf(signer.address), 10
-  )} DOT`);
+  console.log(`\n[1] Token balance: ${ethers.formatUnits(
+    await dot.balanceOf(signer.address), dotDecimals
+  )} ${dotSymbol}`);
 
   // Approve
-  console.log(`[2] Approving vault for ${ethers.formatUnits(DEPOSIT_AMOUNT, 10)} DOT...`);
+  console.log(`[2] Approving vault for ${ethers.formatUnits(DEPOSIT_AMOUNT, dotDecimals)} ${dotSymbol}...`);
   const approveTx = await dot.approve(vaultAddress, DEPOSIT_AMOUNT);
   await approveTx.wait();
   console.log(`    ✅ Approved (tx: ${approveTx.hash})`);
 
   // Deposit
-  console.log(`[3] Depositing ${ethers.formatUnits(DEPOSIT_AMOUNT, 10)} DOT...`);
+  console.log(`[3] Depositing ${ethers.formatUnits(DEPOSIT_AMOUNT, dotDecimals)} ${dotSymbol}...`);
   const depositTx = await vault.deposit(DEPOSIT_AMOUNT, { gasLimit: 500_000 });
   const receipt = await depositTx.wait();
   console.log(`    ✅ Deposited (tx: ${depositTx.hash})`);
@@ -72,13 +84,13 @@ async function main() {
   console.log(`\n[4] Reading user position...`);
   const pos = await vault.getUserInfo(signer.address);
   console.log(`    Shares      : ${pos._shares.toString()}`);
-  console.log(`    DOT value   : ${ethers.formatUnits(pos._dotValue, 10)} DOT`);
-  console.log(`    Est. yield  : ${ethers.formatUnits(pos._estimatedYield, 10)} DOT`);
+  console.log(`    Value       : ${ethers.formatUnits(pos._dotValue, dotDecimals)} ${dotSymbol}`);
+  console.log(`    Est. yield  : ${ethers.formatUnits(pos._estimatedYield, dotDecimals)} ${dotSymbol}`);
 
   // Vault state
   console.log(`\n[5] Vault state...`);
   const state = await vault.getVaultState();
-  console.log(`    Total DOT   : ${ethers.formatUnits(state._totalDotDeposited, 10)} DOT`);
+  console.log(`    Total value : ${ethers.formatUnits(state._totalDotDeposited, dotDecimals)} ${dotSymbol}`);
   console.log(`    Total shares: ${state._totalShares.toString()}`);
   console.log(`    Share price : ${state._sharePrice.toString()}`);
   console.log(`    XCM enabled : ${state._xcmEnabled}`);

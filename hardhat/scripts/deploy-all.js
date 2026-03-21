@@ -18,6 +18,34 @@ function requireAddress(name) {
   return value;
 }
 
+function maybeAddress(value) {
+  const raw = (value || "").trim();
+  if (!raw) return null;
+  return /^0x[a-fA-F0-9]{40}$/.test(raw) ? raw : null;
+}
+
+function maybeAssetIdToErc20(name) {
+  const raw = (process.env[name] || "").trim();
+  if (!raw) return null;
+
+  let assetId;
+  if (/^0x[0-9a-fA-F]+$/.test(raw)) {
+    assetId = Number(BigInt(raw));
+  } else if (/^[0-9]+$/.test(raw)) {
+    assetId = Number(raw);
+  } else {
+    throw new Error(`${name} must be decimal or 0x-prefixed hex`);
+  }
+
+  if (!Number.isInteger(assetId) || assetId < 0 || assetId > 0xffffffff) {
+    throw new Error(`${name} must fit in uint32`);
+  }
+
+  // Per Polkadot docs: 0x[assetId(4 bytes)][24 zero bytes][prefix=0x01200000]
+  const head = assetId.toString(16).padStart(8, "0");
+  return `0x${head}${"0".repeat(24)}01200000`;
+}
+
 function maybeBytes32(name) {
   const value = (process.env[name] || "").trim();
   if (!value) return "0x" + "00".repeat(32);
@@ -30,7 +58,12 @@ function maybeBytes32(name) {
 async function main() {
   const [deployer] = await ethers.getSigners();
 
-  const dotTokenAddress = requireAddress("DOT_ERC20_ADDRESS");
+  const explicitDot = maybeAddress(process.env.DOT_ERC20_ADDRESS);
+  const derivedDot = maybeAssetIdToErc20("DOT_ASSET_ID");
+  const dotTokenAddress = explicitDot || derivedDot;
+  if (!dotTokenAddress) {
+    throw new Error("Set DOT_ERC20_ADDRESS (or DOT_ASSET_ID to derive precompile address).");
+  }
   const hubSovereign = maybeBytes32("HUB_SOVEREIGN");
 
   console.log("\n═══════════════════════════════════════════════");
@@ -41,6 +74,12 @@ async function main() {
     await ethers.provider.getBalance(deployer.address)
   )} PAS`);
   console.log(`  DOT ERC20: ${dotTokenAddress}`);
+  if ((process.env.DOT_ERC20_ADDRESS || "").trim() && !explicitDot) {
+    console.log("  Note: ignored invalid DOT_ERC20_ADDRESS env value");
+  }
+  if ((process.env.DOT_ASSET_ID || "").trim()) {
+    console.log(`  DOT_ASSET_ID: ${process.env.DOT_ASSET_ID.trim()} (derived precompile)`);
+  }
   console.log(`  Hub Sovereign: ${hubSovereign}\n`);
 
   console.log("[1/2] Deploying BuildCallData Library...");
@@ -97,11 +136,15 @@ async function main() {
   }
 
   console.log("  Next steps:");
-  console.log("  1. Configure live XCM:");
+  console.log("  1. Probe Hub precompiles (recommended):");
+  console.log("     npx hardhat run scripts/probe-hub-precompiles.js --network polkadotTestnet");
+  console.log("  2. Configure live XCM:");
   console.log("     npx hardhat run scripts/configure-live-xcm.js --network polkadotTestnet");
-  console.log("  2. Smoke-test deposits:");
+  console.log("  3. Smoke-test deposits:");
   console.log("     npx hardhat run scripts/test-deposit.js --network polkadotTestnet");
-  console.log("  3. Frontend env is in hardhat/.env.frontend\n");
+  console.log("  4. Read live config:");
+  console.log("     VAULT_ADDRESS=0x... npx hardhat run scripts/check-live-config.js --network polkadotTestnet");
+  console.log("  5. Frontend env is in hardhat/.env.frontend\n");
 }
 
 main()
