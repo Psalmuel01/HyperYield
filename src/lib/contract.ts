@@ -7,7 +7,7 @@ import { type Address } from 'viem';
 
 // ── Chain constants ──────────────────────────────────────────
 export const PASSET_HUB_CHAIN_ID = 420420417;
-export const PASSET_HUB_RPC = 'https://eth-rpc-testnet.polkadot.io';
+export const PASSET_HUB_RPC = 'https://services.polkadothub-rpc.com/testnet';
 export const BLOCK_EXPLORER = 'https://blockscout-passet-hub.parity-testnet.parity.io';
 
 // ── Contract addresses (set via env vars, or fallback empty) ─

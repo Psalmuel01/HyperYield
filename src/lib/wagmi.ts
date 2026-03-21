@@ -3,7 +3,8 @@
 //  Defines the Passet Hub testnet chain and wallet connectors.
 // ─────────────────────────────────────────────────────────────
 
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { createConfig, http } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 import { defineChain } from 'viem';
 
 // ── Passet Hub (Polkadot Hub TestNet) ─────────────────────────
@@ -17,7 +18,7 @@ export const polkadotTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ['https://eth-rpc-testnet.polkadot.io'],
+      http: ['https://services.polkadothub-rpc.com/testnet'],
     },
   },
   blockExplorers: {
@@ -29,10 +30,11 @@ export const polkadotTestnet = defineChain({
   testnet: true,
 });
 
-// ── Wagmi + RainbowKit config ────────────────────────────────
-export const config = getDefaultConfig({
-  appName: 'HyperVault',
-  projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'hypervault-hackathon',
+// ── Wagmi config (injected wallets only; avoids WalletConnect dependency at runtime) ──
+export const config = createConfig({
   chains: [polkadotTestnet],
-  ssr: false,
+  connectors: [injected({ shimDisconnect: true })],
+  transports: {
+    [polkadotTestnet.id]: http('https://services.polkadothub-rpc.com/testnet'),
+  },
 });

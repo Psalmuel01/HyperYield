@@ -1,7 +1,6 @@
 // scripts/test-deposit.js
 // ─────────────────────────────────────────────────────────────
 //  Smoke test: approve + deposit + read position
-//  Run AFTER deploy.js
 //
 //  Usage:
 //    npx hardhat run scripts/test-deposit.js --network polkadotTestnet

@@ -86,7 +86,7 @@ async function main() {
     `VITE_DOT_TOKEN_ADDRESS=${wpasAddress}`,
     `VITE_VAULT_ADDRESS=${vaultAddress}`,
     `VITE_CHAIN_ID=420420417`,
-    `VITE_RPC_URL=https://eth-rpc-testnet.polkadot.io`,
+    `VITE_RPC_URL=https://services.polkadothub-rpc.com/testnet`,
   ].join("\n") + "\n";
 
   fs.writeFileSync(".env.frontend", envContent);

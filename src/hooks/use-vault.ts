@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { formatUnits, parseUnits, type Address, type Log } from 'viem';
 import { toast } from '@/components/ui/sonner';
-import { VAULT_ABI, ERC20_ABI, VAULT_ADDRESS, DOT_TOKEN_ADDRESS, DOT_DECIMALS, BLOCK_EXPLORER } from '@/lib/contract';
+import { VAULT_ABI, ERC20_ABI, VAULT_ADDRESS, DOT_TOKEN_ADDRESS, DOT_DECIMALS } from '@/lib/contract';
 
 // ─────────────────────────────────────────────────────────────
 //  Types exported to components
@@ -73,6 +73,11 @@ const fmtDot = (raw: bigint | undefined, decimals = DOT_DECIMALS): number => {
   return Number(formatUnits(raw, decimals));
 };
 
+const fmtShares = (raw: bigint | undefined): number => {
+  if (!raw) return 0;
+  return Number(formatUnits(raw, 18));
+};
+
 const fmtSharePrice = (raw: bigint | undefined): number => {
   if (!raw) return 1;
   // Share price is scaled by 1e18
@@ -138,6 +143,13 @@ export function useVault() {
     query: { enabled: contractReady && isConnected && !!address, refetchInterval: 10_000 },
   });
 
+  const { data: dotDecimalsRaw } = useReadContract({
+    address: DOT_TOKEN_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: 'decimals',
+    query: { enabled: contractReady && isConnected },
+  });
+
   // ── Contract writes ────────────────────────────────────────
   const { writeContractAsync } = useWriteContract();
 
@@ -164,27 +176,29 @@ export function useVault() {
     if (!contractReady || !vaultStateRaw) return mockVaultState;
 
     const [totalDotDeposited, totalShares, sharePrice,, depositorCount, xcmEnabled, paused] = vaultStateRaw;
+    const tokenDecimals = Number(dotDecimalsRaw ?? DOT_DECIMALS);
 
     return {
-      totalDOT: fmtDot(totalDotDeposited),
-      totalShares: fmtDot(totalShares), // shares use same decimal as DOT for display
+      totalDOT: fmtDot(totalDotDeposited, tokenDecimals),
+      totalShares: fmtShares(totalShares),
       sharePrice: fmtSharePrice(sharePrice),
       apy: MOCK_APY, // APY is always mocked (Bifrost doesn't expose it on-chain)
       userCount: Number(depositorCount),
       xcmEnabled: xcmEnabled,
       paused: paused,
     };
-  }, [contractReady, vaultStateRaw, mockVaultState]);
+  }, [contractReady, vaultStateRaw, mockVaultState, dotDecimalsRaw]);
 
   // ── Derived: user position ─────────────────────────────────
   const userPosition: UserPosition = useMemo(() => {
     if (!contractReady || !userInfoRaw) return mockUserPosition;
 
     const [shares, dotValue, estimatedYield, depositedAt] = userInfoRaw;
+    const tokenDecimals = Number(dotDecimalsRaw ?? DOT_DECIMALS);
 
-    const sharesNum = fmtDot(shares);
-    const dotValueNum = fmtDot(dotValue);
-    const yieldNum = fmtDot(estimatedYield);
+    const sharesNum = fmtShares(shares);
+    const dotValueNum = fmtDot(dotValue, tokenDecimals);
+    const yieldNum = fmtDot(estimatedYield, tokenDecimals);
     const principal = dotValueNum - yieldNum;
 
     return {
@@ -194,13 +208,13 @@ export function useVault() {
       yieldPercent: principal > 0 ? (yieldNum / principal) * 100 : 0,
       depositTimestamp: Number(depositedAt) > 0 ? Number(depositedAt) * 1000 : null,
     };
-  }, [contractReady, userInfoRaw, mockUserPosition]);
+  }, [contractReady, userInfoRaw, mockUserPosition, dotDecimalsRaw]);
 
   // ── Derived: DOT balance ───────────────────────────────────
   const dotBalance: number = useMemo(() => {
     if (!contractReady || dotBalanceRaw === undefined) return mockDotBalance;
-    return fmtDot(dotBalanceRaw);
-  }, [contractReady, dotBalanceRaw, mockDotBalance]);
+    return fmtDot(dotBalanceRaw, Number(dotDecimalsRaw ?? DOT_DECIMALS));
+  }, [contractReady, dotBalanceRaw, mockDotBalance, dotDecimalsRaw]);
 
   // ── Fetch contract events for activity feed ────────────────
   useEffect(() => {
@@ -262,12 +276,13 @@ export function useVault() {
 
         for (const log of depositLogs) {
           const args = (log as Log & { args: { user: Address; dotAmount: bigint; sharesIssued: bigint } }).args;
+          const tokenDecimals = Number(dotDecimalsRaw ?? DOT_DECIMALS);
           parsed.push({
             id: `${log.transactionHash}-${log.logIndex}`,
             type: 'deposit',
             user: shortenAddress(args.user),
-            amount: fmtDot(args.dotAmount),
-            shares: fmtDot(args.sharesIssued),
+            amount: fmtDot(args.dotAmount, tokenDecimals),
+            shares: fmtShares(args.sharesIssued),
             timestamp: Date.now(), // Block timestamps need separate fetch; using now as approximation
             status: 'confirmed',
             txHash: log.transactionHash || '',
@@ -276,12 +291,13 @@ export function useVault() {
 
         for (const log of withdrawLogs) {
           const args = (log as Log & { args: { user: Address; sharesBurned: bigint; dotEstimate: bigint } }).args;
+          const tokenDecimals = Number(dotDecimalsRaw ?? DOT_DECIMALS);
           parsed.push({
             id: `${log.transactionHash}-${log.logIndex}`,
             type: 'withdraw',
             user: shortenAddress(args.user),
-            amount: fmtDot(args.dotEstimate),
-            shares: fmtDot(args.sharesBurned),
+            amount: fmtDot(args.dotEstimate, tokenDecimals),
+            shares: fmtShares(args.sharesBurned),
             timestamp: Date.now(),
             status: 'confirmed',
             txHash: log.transactionHash || '',
@@ -290,11 +306,12 @@ export function useVault() {
 
         for (const log of xcmLogs) {
           const args = (log as Log & { args: { user: Address; action: string; dotAmount: bigint; live: boolean } }).args;
+          const tokenDecimals = Number(dotDecimalsRaw ?? DOT_DECIMALS);
           parsed.push({
             id: `${log.transactionHash}-${log.logIndex}`,
             type: 'xcm_dispatch',
             user: shortenAddress(args.user),
-            amount: fmtDot(args.dotAmount),
+            amount: fmtDot(args.dotAmount, tokenDecimals),
             timestamp: Date.now(),
             status: args.live ? 'dispatched' : 'confirmed',
             txHash: log.transactionHash || '',
@@ -316,7 +333,7 @@ export function useVault() {
     fetchEvents();
     const interval = setInterval(fetchEvents, 30_000);
     return () => clearInterval(interval);
-  }, [contractReady, publicClient, isConnected]);
+  }, [contractReady, publicClient, isConnected, dotDecimalsRaw]);
 
   // ─────────────────────────────────────────────────────────────
   //  Actions
@@ -328,7 +345,8 @@ export function useVault() {
     // ── Contract mode ───────────────────────────────────────
     if (contractReady && address) {
       try {
-        const rawAmount = parseUnits(amount.toString(), DOT_DECIMALS);
+        const tokenDecimals = Number(dotDecimalsRaw ?? DOT_DECIMALS);
+        const rawAmount = parseUnits(amount.toString(), tokenDecimals);
 
         // Step 1: Approve DOT spending
         setPendingTx({ type: 'Approving DOT...', hash: '' });
@@ -413,7 +431,7 @@ export function useVault() {
 
       setPendingTx(null);
     }, 2500);
-  }, [dotBalance, contractReady, address, writeContractAsync, publicClient, mockVaultState, mockUserPosition]);
+  }, [dotBalance, contractReady, address, writeContractAsync, publicClient, mockVaultState, mockUserPosition, dotDecimalsRaw]);
 
   const withdraw = useCallback(async (shareAmount: number) => {
     if (shareAmount <= 0 || shareAmount > userPosition.shares) return;
@@ -421,7 +439,7 @@ export function useVault() {
     // ── Contract mode ───────────────────────────────────────
     if (contractReady && address) {
       try {
-        const rawShares = parseUnits(shareAmount.toString(), DOT_DECIMALS);
+        const rawShares = parseUnits(shareAmount.toString(), 18);
 
         setPendingTx({ type: 'Redeeming vDOT via XCM from Bifrost', hash: '' });
 
